@@ -1,6 +1,13 @@
-Thank you Codex for dutifully packaging the exploits for distribution. No, I have not read the distributed package.
-
 # Switch 2 FS demo
+
+Notes:
+
+- Always use ethernet on the device you run the exploit and your Switch 2, or
+the fs exploit won't work as it's very timing sensitive.
+- Keep the game on internal storage of the console, not SD.
+- FS exploit is still very unstable. At best you might get a 20% success rate.
+- This repo isn't intended to use as an API to build other apps on. Use it for
+debugging only.
 
 ## What this fork improves
 
@@ -55,7 +62,6 @@ import file; there is no published download key.
 
    If asked, select the computer address reachable by the console. You can also
    supply it directly: `node run.cjs 192.168.1.10`. The connection uses port 39380.
-
 3. In SmileBASIC, load the saved program and enter these commands separately:
 
    ```basic
