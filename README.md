@@ -3,11 +3,11 @@
 Notes:
 
 - Always use ethernet on the device you run the exploit and your Switch 2, or
-the fs exploit won't work as it's very timing sensitive.
+  the fs exploit won't work as it's very timing sensitive.
 - Keep the game on internal storage of the console, not SD.
 - FS exploit is still very unstable. At best you might get a 20% success rate.
 - This repo isn't intended to use as an API to build other apps on. Use it for
-debugging only.
+  debugging only.
 
 ## What this fork improves
 
@@ -15,6 +15,8 @@ This fork aims to make the exploit work across the two Switch 2 memory layouts
 we observed before and after installing the microSD Express support update. The
 original could get through the initial exploit, then fail while starting its
 native helper; this fork adapts to either observed layout.
+
+Supports demo version
 
 To check for the microSD Express support update, open **System Settings →
 Support/Health & Safety** and look at item 3. On our test console it showed
@@ -41,7 +43,7 @@ aborting a slow request that would work otherwise.
 Runs two small native functions inside FS, checks their results, and restores the
 original instructions. Switch 2 only; no npm install or compiler needed.
 
-You need **SmileBASIC 4.4.9**, **system software 23.0.1**, **Node.js 22+** on
+You need **SmileBASIC 4.4.9 (and now the demo version works as well!)**, **system software 23.0.1**, **Node.js 22+** on
 macOS or Linux, and over **20 MiB free** in the SmileBASIC save. The computer and
 console must be on the same reachable network.
 
