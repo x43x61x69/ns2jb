@@ -44,8 +44,6 @@ PRGEDIT 0:C$="":FOR I=0 TO PRGSIZE(0)-1:C$=C$+PRGGET$() :NEXT:SAVEV "TXT:NS2",C$
    REMOVE NSR,&H60000000,&H3FFFFFFF
    ```
 
-   For the demo version use `PRGEDIT 0:LOADV "TXT:NS2" OUT C$:PRGSET C$`  instead of `LOAD "TXT:NS2"`
-
    Confirm the load. The **Out of memory** message from `REMOVE` is expected.
    Then enter the **`V=START(...)`** line printed by the computer.
 
