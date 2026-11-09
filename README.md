@@ -158,7 +158,9 @@ the same time. A `game-dump.lock` prevents overlapping dump commands. On failure
 native operation is replayed. An uncertain native failure blocks further
 requests and records retained allocation/handle identities. Restart the console
 when the error reports deferred cleanup. After an interrupted host process,
-check that it has exited before removing its stale lock. Resume/overwrite is
+check that it has exited. If complete cleanup was not recorded in `dump.json`,
+restart the console and establish a fresh held run before another dump; do not
+remove the stale lock merely to retry against the old session. Resume/overwrite is
 not implemented; a new attempt needs a new destination. A failed dump never
 clears an earlier output or the existing firmware `dumps/` directory.
 

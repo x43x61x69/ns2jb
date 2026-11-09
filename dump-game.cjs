@@ -53,7 +53,7 @@ async function main(argv = process.argv.slice(2)) {
   let lock;
   try {lock = await fs.open(lockPath, 'wx', 0o600);}
   catch (error) {
-    if (error.code === 'EEXIST') throw Error('A dump lock exists: ' + lockPath + '. Check the previous dumper before removing a stale lock.');
+    if (error.code === 'EEXIST') throw Error('A dump lock exists: ' + lockPath + '. Check the previous dumper; if cleanup was not recorded, restart the console before removing a stale lock.');
     throw error;
   }
   try {
