@@ -1,0 +1,18 @@
+name: offline tests
+on: [push, pull_request]
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Host and engine tests
+        run: >-
+          node --test test.cjs tests/*.test.cjs
+          engine/switch2/memory/wave-overlap.test.cjs
+          engine/switch2/retained/cache-shape.test.cjs
+          engine/switch2/retained/metadata-window.test.cjs
+          engine/switch2/retained/pool-anchor.test.cjs
+          engine/switch2/ro/layout.test.cjs

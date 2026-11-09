@@ -19,6 +19,7 @@ async function main() {
   const trialRange = 0x600000, cacheReadSize = 0x200000, fragmentCount = 16;
   const minimumCacheHeld = 0x2810, metadataAttempts = 4, fieldCopies = 2;
   const waveAttempts = 30;
+  const pinAttempts = 3;
   const plannerCycle = 0x28000;
   const canonicalPlanner = require('./cache-address-plan.cjs');
   const addressPlanner = (target, size) => require('./signed-cache-plan.cjs').plan(target, size, plannerCycle);
@@ -65,9 +66,11 @@ async function main() {
   const runControl = new RunControl({id: label, save});
   report.control = runControl.state;
   const call = (offset, args = [0, 0, 0, 0], name) => ({function: live.sdk + offset, args, name});
-  const wait = address => call(events.code.wait.offset, [address, 0, 0, 0]);
-  const signal = address => call(events.code.signal.offset, [address, 0, 0, 0]);
-  const sleep = nanoseconds => call(code.sleep.offset, [nanoseconds, 0, 0, 0]);
+  const eventName = address => ({[master]: 'master', [holeDone]: 'holeDone',
+    [groupReleased]: 'groupReleased', [guardLaunched]: 'guardLaunched'})[address] || String(address);
+  const wait = address => call(events.code.wait.offset, [address, 0, 0, 0], 'wait:' + eventName(address));
+  const signal = address => call(events.code.signal.offset, [address, 0, 0, 0], 'signal:' + eventName(address));
+  const sleep = nanoseconds => call(code.sleep.offset, [nanoseconds, 0, 0, 0], 'sleep:' + nanoseconds + 'ns');
   const tick = name => call(timing.code.tick.offset, undefined, name);
   const send = (address, handle, name) => ({...call(functions.send.offset,
     [address, 4096, handle, 0], name), kind: 'ipc'});
@@ -399,7 +402,17 @@ async function main() {
         }
         await affinity.pinAll(s, workers, workers.map((_, i) => cores[i % cores.length]));
       });
-      report.active = {profile, readSize};
+      // Persist the plan before releasing the start gate: a failed IPC may
+      // make later progress captures inaccessible. This is a plan, not proof
+      // that any particular call has started or completed.
+      report.active = {profile, readSize, wave: report.cases.length + 1,
+        started: new Date().toISOString(), diagnosticKind: 'planned',
+        workers: workers.map((worker, index) => ({role: roles[index], label: worker.label,
+          thread: worker.thread, coreMask: String(cores[index % cores.length]),
+          calls: worker.calls.map((step, callIndex) => ({index: callIndex,
+            name: step.name || step.kind || 'call', kind: step.kind || 'native',
+            function: step.function,
+            args: step.args.map(arg => typeof arg === 'bigint' ? arg.toString() : arg)}))}))};
       await save();
       console.log(JSON.stringify({stage: 'prepared', ...report.active, file}));
       released = true;
@@ -471,9 +484,10 @@ async function main() {
       await closeGroup();
       if (createPin) {
         const pinRow = rows.find(r => r.role === 'pin');
-        check(canaryRow.startUs < pinRow.startUs && pinRow.endUs < canaryRow.endUs,
-          'Pinning storage was not created while the canary was pending');
-        check(row.newPersistentBytes === 13616, 'Pinning allocation cost changed');
+        // Record the window instead of aborting so the caller can release the
+        // pin and retry; a missed window leaves an unusable pinned allocation.
+        row.pinWindow = canaryRow.startUs < pinRow.startUs && pinRow.endUs < canaryRow.endUs;
+        row.pinCost = row.newPersistentBytes;
       }
       check(rows.find(r => r.role === 'pin').result === 0, 'Pinning request failed');
       check(rows.filter(r => ['commit', 'hole', 'clearReport', 'preRelease'].includes(r.role)).every(r => r.result === 0), 'Ordinary gap request failed');
@@ -501,6 +515,28 @@ async function main() {
 
     const hasWindow = row => row.restored && !row.triggerAborted && row.allPending && row.receiveOrderMarginUs >= 300 &&
       row.preReleaseUsed >= 0x2600;
+    async function releasePin() {
+      if (!pinHandle) return;
+      const handle = pinHandle;
+      pinHandle = null;
+      report.pinHandle = null;
+      try { if (s.handles.has(handle)) await s.close(handle); else s.handles.delete(handle); }
+      catch { s.handles.delete(handle); }
+    }
+    // The first measured wave creates the pinned storage, so a missed canary
+    // window is retried here; later waves reuse the pin.
+    async function firstWave(profile, readSize) {
+      for (let attempt = 0; attempt < pinAttempts; attempt++) {
+        const row = await wave(profile, readSize);
+        if (row.pinWindow) {
+          check(row.pinCost === 13616, 'Pinning allocation cost changed');
+          return row;
+        }
+        if (!row.restored) break;
+        await releasePin();
+      }
+      throw Error('Pinning storage did not land inside the canary window');
+    }
     async function retryWave(profile) {
       let row;
       for (let attempt = 0; attempt < waveAttempts; attempt++) {
@@ -520,7 +556,7 @@ async function main() {
       check(row.selectedMarker && hasWindow(row), 'The interleaved input extent did not requalify');
     }
 
-    const abortControl = await wave('abort-control', probeReadSize);
+    const abortControl = await firstWave('abort-control', probeReadSize);
     check(abortControl.triggerAborted && abortControl.nativeGuard.completed === 1, 'Native abort control failed');
     const holeAbortControl = await wave('abort-hole-control', probeReadSize);
     check(holeAbortControl.triggerAborted && holeAbortControl.nativeGuard.earlyHole === 1 &&
@@ -1040,7 +1076,10 @@ async function main() {
     if (error instanceof StopRequested) report.stopped = true;
     else {
       report.error = error.stack;
+      if (error.workerFailure) report.workerFailure = error.workerFailure;
       process.exitCode = 1;
+      // Save the host-side failure before attempting any diagnostic RPC.
+      await save();
       if (runControl.started && await s.ready()) {
         if (s.threads.size && workers.length) {
           try {

@@ -85,7 +85,18 @@ async function join(s, worker, timeoutMs = 15000) {
     if (finished) break;
     await new Promise(resolve => setTimeout(resolve, 10));
   } while (Date.now() < until);
-  check(finished, 'Native batch did not terminate; resources retained');
+  if (!finished) {
+    // Preserve host-known identity even when owned memory cannot be read.
+    // The last executing step is unknown until a progress capture succeeds.
+    const error = Error('Native batch did not terminate: ' + worker.label +
+      ' (thread ' + worker.thread + ', timeout ' + timeoutMs + 'ms); resources retained');
+    error.workerFailure = {label: worker.label, thread: worker.thread,
+      timeoutMs, observed: 'not-terminated', executingStep: null,
+      calls: worker.calls.map((call, index) => ({index, name: call.name || call.kind || 'call',
+        kind: call.kind || 'native', function: call.function,
+        args: call.args.map(arg => typeof arg === 'bigint' ? arg.toString() : arg)}))};
+    throw error;
+  }
   const raw = await s.readOwned(worker.base + worker.resultOffsets[0], worker.resultOffsets.length * 8);
   const values = worker.resultOffsets.map((_, i) => raw.readBigUInt64LE(i * 8));
   check(values.every(value => value !== SENTINEL), 'Native batch did not store every result');

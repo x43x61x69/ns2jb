@@ -1,5 +1,45 @@
 # Switch 2 FS demo
 
+## ZW Cai's GitHub derivative
+
+Local modifications and integration by ZW Cai ([@x43x61x69](https://github.com/x43x61x69)). This repository
+imports the complete local Git history from
+[kurumuz/ns2jb on GitLab](https://gitlab.com/kurumuz/ns2jb), based on
+`81d5bb114c856109dadaf1077d927a9f297fe58d`. GitHub cannot represent a GitLab
+repository as a native GitHub fork; this is an imported derivative. Original
+ns2jb authors and contributors retain credit for their work. Existing history
+and upstream attribution are preserved; this fork makes no new licensing
+claim over upstream code.
+
+The additional changes support
+[x43x61x69/ns2-savekit](https://github.com/x43x61x69/ns2-savekit):
+
+- Add CMIF/HIPC input and output pointer descriptors for account enumeration
+  and save-file operations, and export mounted-filesystem inspection metadata.
+- Select NCM storage and metadata/install types and allow repeated inventories.
+- Include connection errors in bridge status and session initialization errors.
+- Allow three initial pin-window attempts, 24 metadata move attempts by default
+  (`NS2_METADATA_ATTEMPTS`), and a ten-minute pairing timeout by default
+  (`NS2_PAIR_TIMEOUT_MS`).
+- Keep a separate log per acquisition attempt and a supervisor report. Retry at
+  most three times only after a same-session report proves complete cleanup,
+  with no pending workers, retained resources or cache restoration.
+- Preserve worker identity and the planned native calls on timeout, save the
+  failure before diagnostic RPC, and label event waits and signals. A planned
+  call list does not establish which call was executing.
+
+**Known limitation:** the latest observed acquisition stopped at
+`cache-combined-leak-0-17-0-0` because a native batch did not terminate within
+15 seconds. Its report retained 13 threads and 22 handles and still required
+cache restoration. Cleanup was unproven, so a second acquisition was blocked.
+These changes improve diagnostics and retry handling; they do not resolve that
+hang or demonstrate a successful hardware acquisition. Restart the console
+after such a failure. Offline validation is separate from hardware results.
+
+Credit for the additional modifications, staging diagnostics, documentation
+and validation: **ZW Cai (@x43x61x69)**. Toolkit integration patches originally
+provided by **dougchansan/ns2-savekit** retain their upstream credit.
+
 You need **SmileBASIC 4.4.9 (and now the demo version works as well!)**, **system software 23.0.1**, **Node.js 22+** on
 macOS or Linux, and over **20 MiB free** in the SmileBASIC save. The computer and
 console must be on the same reachable network connected via ethernet.

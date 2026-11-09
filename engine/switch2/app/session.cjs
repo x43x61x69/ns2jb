@@ -57,7 +57,9 @@ class Session {
     return this.rpc.write(address, bytes);
   }
   async initialize() {
-    check(await this.ready(), 'Switch 2 application connection is not ready');
+    const status = await transport.request({command: 'status'});
+    check(live.platform === 2 && status.ready,
+      'Switch 2 application connection is not ready' + (status.error ? ': ' + status.error : ''));
     this.rpc = await client();
     for (const name of ['allocate', 'free', 'getService', 'send', 'close', 'memset']) {
       const expected = functions[name];

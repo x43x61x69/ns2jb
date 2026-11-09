@@ -112,7 +112,10 @@ test('held RPC client reaches the local bridge and reports request errors', asyn
   t.after(() => bridge.close());
   const file = path.join(root, 'connection.json');
   fs.writeFileSync(file, JSON.stringify({port: bridge.port}));
-  assert.deepEqual(await rpcRequest(root, {command: 'status'}), {ready: true, calls: 7});
+  assert.deepEqual(await rpcRequest(root, {command: 'status'}), {ready: true, calls: 7, error: null});
+  native.connection.error = Error('connection closed');
+  assert.deepEqual(await rpcRequest(root, {command: 'status'}),
+    {ready: false, calls: 7, error: 'connection closed'});
   await assert.rejects(rpcRequest(root, {command: 'missing'}), /Unknown bridge command/);
 });
 

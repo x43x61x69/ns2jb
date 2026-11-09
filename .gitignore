@@ -1,2 +1,5 @@
 /runs/
 /dumps/
+.DS_Store
+._*
+.test-ns2jb/

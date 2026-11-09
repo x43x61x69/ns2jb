@@ -11,7 +11,8 @@ async function serve(native) {
   };
   async function handle(request) {
     const {command} = request;
-    if (command === 'status') return {ready: !native.connection.error, calls: native.calls};
+    if (command === 'status') return {ready: !native.connection.error, calls: native.calls,
+      error: native.connection.error ? String(native.connection.error.message || native.connection.error) : null};
     if (command === 'call') {
       const reply = await native.call(request.offset, ...request.args);
       return {result: reply.result.toString(), output: reply.output.toString('base64')};
