@@ -178,22 +178,40 @@ aborting a slow request that would work otherwise.
 Runs two small native functions inside FS, checks their results, and restores the
 original instructions. Switch 2 only; no npm install or compiler needed.
 
-## Additional integration changes
+## Update history
 
-Imported from [kurumuz/ns2jb](https://gitlab.com/kurumuz/ns2jb) at `81d5bb1`,
-with patches supporting the [save toolkit](https://github.com/x43x61x69/ns2-savekit):
-CMIF pointer descriptors, mounted-filesystem inspection, selectable NCM
-inventories, connection error reporting, configurable pairing and metadata
-attempts, and bounded initial pin retries.
+Times below use UTC+08:00 (Asia/Taipei) and record when changes were committed
+in this derivative. The base is
+[kurumuz/ns2jb](https://gitlab.com/kurumuz/ns2jb) at `81d5bb1`.
 
-Acquisition retains per-attempt logs and a supervisor report. A new attempt is
-allowed only after the same session proves cleanup with no retained resources,
-pending operations or cache restoration. Worker timeout diagnostics preserve
-identity and planned calls without claiming which call was executing.
+### 2026-11-09 15:25 — documentation cleanup
 
-The latest observed native-batch hang remains unresolved. These changes improve
-diagnostics and retry handling; they do not establish hardware reliability.
-Restart the console when cleanup cannot be proven.
+- Restore setup instructions to the top of the README and move integration
+  details beside the code documentation.
+- Reduce additional maintenance credit to one line and refresh the README
+  checksum; runtime code is unchanged.
+
+### 2026-11-09 15:13 — savekit integration and acquisition diagnostics
+
+- Add CMIF/HIPC pointer descriptors and mounted-filesystem inspection for the
+  [save toolkit](https://github.com/x43x61x69/ns2-savekit).
+- Support selectable NCM storage and metadata/install types, plus repeated
+  inventories in the same run.
+- Report connection errors in bridge status and session initialization.
+- Allow three initial pin-window attempts, 24 metadata move attempts by default
+  (`NS2_METADATA_ATTEMPTS`), and a ten-minute pairing timeout by default
+  (`NS2_PAIR_TIMEOUT_MS`).
+- Preserve separate acquisition logs and a supervisor report; retry only after
+  the same session proves cleanup with no retained resources, pending
+  operations or cache restoration.
+- Preserve worker identity and planned calls on timeout, save failure details
+  before diagnostic RPC, and label event waits and signals. Planned calls do
+  not establish which call was executing.
+- Add acquisition/timeout regression tests and GitHub CI.
+
+The native-batch hang remains unresolved. These changes improve diagnostics
+and retry handling; they do not establish hardware reliability. Restart the
+console when cleanup cannot be proven.
 
 ## Code
 
