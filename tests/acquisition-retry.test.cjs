@@ -31,19 +31,22 @@ test('only proven cleanup permits retry', () => {
     {...clean, retained: {...clean.retained, handles: [1]}},
     {...clean, retained: {...clean.retained, threads: [1]}},
     {...clean, retained: {...clean.retained, base: 123}},
-    {...clean, retainedMemory: {pending: true}}, {...clean, memoryControl: {ready: true}}]) {
+    {...clean, retainedMemory: {pending: true}}, {...clean, memoryControl: {ready: true}}, {...clean, retryable: false}]) {
     assert.equal(canRetry(report, 'test', {code: 1, signal: null}), false);
   }
   assert.equal(canRetry(clean, 'test', {code: null, signal: 'SIGKILL'}), false);
 });
-for (const scenario of ['clean', 'uncertain', 'missing-report', 'foreign-session']) {
+for (const scenario of ['clean', 'uncertain', 'missing-report', 'foreign-session', 'profile-mismatch']) {
   test('supervisor: ' + scenario, async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'acquisition-test-'));
     try {
       fs.mkdirSync(path.join(dir, 'memory'));
       const report = {...clean, error: 'Error: simulated failure',
         ...(scenario === 'uncertain' ? {placementUncertain: true, cleanedUp: false} : {}),
-        ...(scenario === 'foreign-session' ? {session: 'foreign'} : {})};
+        ...(scenario === 'foreign-session' ? {session: 'foreign'} : {}),
+        ...(scenario === 'profile-mismatch' ? {retryable: false,
+          acquisitionProfile: {name: 'internal', expectedBytes: 13616},
+          allocationMismatch: {observedBytes: 14992}} : {})};
       fs.writeFileSync(path.join(dir, 'memory/probe-reserved-gap.cjs'), `
         const fs = require('node:fs'), path = require('node:path');
         fs.appendFileSync(path.join(__dirname, '../launched'), '1');
@@ -54,12 +57,18 @@ for (const scenario of ['clean', 'uncertain', 'missing-report', 'foreign-session
         }
         console.error('preserved diagnostic'); process.exitCode = 1;
       `);
-      await assert.rejects(load(dir).start(), scenario === 'clean' ? /attempts exhausted/ : /restart the console/);
+      await assert.rejects(load(dir).start(), scenario === 'clean' ? /attempts exhausted/ :
+        scenario === 'profile-mismatch' ? /cleanup completed; configuration requires/ : /restart the console/);
       const expected = scenario === 'clean' ? 3 : 1;
       assert.equal(fs.readFileSync(path.join(dir, 'launched'), 'utf8').length, expected);
       const supervisor = JSON.parse(fs.readFileSync(path.join(dir, 'acquisition-supervisor.json')));
       assert.equal(supervisor.attempts.length, expected);
       assert.equal(supervisor.stage, 'failed');
+      if (scenario === 'profile-mismatch') {
+        assert.equal(supervisor.attempts[0].retryAllowed, false);
+        assert.equal(supervisor.attempts[0].allocationMismatch.observedBytes, 14992);
+        assert.equal(supervisor.attempts[0].acquisitionProfile.expectedBytes, 13616);
+      }
       const logs = supervisor.attempts.map(a => a.log);
       assert.equal(new Set(logs).size, expected);
       for (const log of logs) assert.match(fs.readFileSync(log, 'utf8'), /preserved diagnostic/);

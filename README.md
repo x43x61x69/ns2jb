@@ -8,11 +8,55 @@ Notes:
 
 - Always use ethernet on the device you run the exploit and your Switch 2, or
   the fs exploit won't work as it's very timing sensitive.
-- Keep the game on internal storage of the console, not SD.
+- Keep SmileBASIC on internal storage for the default acquisition profile.
+  SD placement requires the unvalidated `--experimental-sd` mode below.
 - FS exploit is still very unstable. At best you might get a 20% success rate.
 - This repo isn't intended to use as an API to build other apps on. Use it for
   debugging only.
 - 
+
+## Acquisition storage profiles
+
+The default acquisition profile expects **13,616 bytes**, observed with the
+SmileBASIC 4 application installed in console internal storage. If a pin or
+candidate allocation instead measures **14,992 bytes**, the error explains how
+to move **the application itself**, not just its save, to internal storage and
+reboot. It also points to the optional SD mode:
+
+```sh
+node run.cjs --rpc --experimental-sd <computer-IP>
+```
+
+This selects an **experimental 14,992-byte profile** for SmileBASIC installed
+on microSD. Before pairing or creating a run, the terminal explains that this
+profile is unvalidated and success is not guaranteed, then asks `[y/N]`.
+Only an explicit `y`/`yes` from an interactive terminal continues; Enter, a
+negative answer or piped input cancels. Confirmation applies to that launch's
+acquisition attempts. There is no automatic switch to SD mode after detection.
+The option also works with `--dump-firmware` and `dump-firmware.cjs`. Start a
+fresh console boot and a new run after changing profiles; existing run folders
+keep their copied engine source.
+
+The chosen profile changes the exact expected pin cost, initial restoration
+accounting and candidate allocation cost together. Other allocator geometry,
+timing windows, canary tests, restoration checks and cleanup gates remain
+unchanged. Unknown or mixed costs are still rejected. A configuration mismatch
+stops further attempts with that profile after cleanup; if cleanup cannot be
+proven, the existing restart requirement still applies. Failed pin closes are
+not discarded or treated as proof of cleanup.
+
+Profile selection and confirmation are recorded in `result.json` and the
+acquisition report; failed attempts retain profile/mismatch details in the
+supervisor report. Acquisition rows now include pin-window, measured-cost and
+expected-cost fields before being written to the log. The actionable mismatch
+hint is shown in the runner terminal as `Acquisition: ...` without requiring
+verbose mode.
+
+**This does not establish that the SD layout works, or fix the separate native
+or console-response hangs observed later in acquisition.** Internal storage is
+the default; SD mode is an explicit experiment. This option selects the
+SmileBASIC acquisition profile and is unrelated to `dump-game.cjs --storage`,
+which selects the target game's ExeFS location.
 
 ## One-time setup
 
@@ -275,6 +319,19 @@ original instructions. Switch 2 only; no npm install or compiler needed.
 Times below use UTC+08:00 (Asia/Taipei) and record when changes were committed
 in this derivative. The base is
 [kurumuz/ns2jb](https://gitlab.com/kurumuz/ns2jb) at `81d5bb1`.
+
+### 2026-11-09 21:13 — optional experimental SD acquisition profile
+
+- Keep the 13,616-byte internal-storage profile by default; report an observed
+  14,992-byte mismatch with instructions to move SmileBASIC or choose SD mode.
+- Add `--experimental-sd` with a warning and interactive opt-in before pairing;
+  propagate the acknowledged 14,992-byte profile to acquisition children.
+- Apply the selected cost consistently to pin/restoration/candidate accounting
+  while keeping other layout, timing, canary and cleanup validations enabled.
+- Stop repeated configuration-mismatch attempts, surface the hint in the
+  terminal and retain profile evidence and measured pin details in the logs.
+- Preserve pin ownership and block cleanup/retry when its close is unproven.
+  SD acquisition remains unvalidated on hardware.
 
 ### 2026-11-09 16:54 — automatic ExeFS storage discovery
 

@@ -8,7 +8,7 @@ const { verifyProof } = require('./memory/verify-proof.cjs');
 const { save, read } = require('./ro/runtime.cjs');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-function canRetry(report, session, exited) {
+function hasProvenCleanup(report, session, exited) {
   const retained = report?.retained;
   return exited?.signal == null && Number.isInteger(exited?.code) &&
     report?.session === session && report.cleanedUp === true &&
@@ -17,6 +17,10 @@ function canRetry(report, session, exited) {
     !report.retainedMemory?.pending && !retained?.cacheNeedsRestore &&
     retained?.base === 0 && Array.isArray(retained.handles) && retained.handles.length === 0 &&
     Array.isArray(retained.threads) && retained.threads.length === 0;
+}
+
+function canRetry(report, session, exited) {
+  return report?.retryable !== false && hasProvenCleanup(report, session, exited);
 }
 
 // The acquisition owns native allocations until retire() completes.
@@ -118,12 +122,18 @@ async function start() {
       record.placementUncertain = final?.placementUncertain === true;
       record.finished = new Date().toISOString();
       record.retryAllowed = retry;
+      record.acquisitionProfile = final?.acquisitionProfile;
+      record.allocationMismatch = final?.allocationMismatch;
       await save(supervisorReport, {stage: retry && attempt < MAX_ATTEMPTS - 1 ? 'retrying' : 'failed', attempts});
       // Keep the conventional latest log path while preserving every attempt.
       await fs.promises.copyFile(logFile, path.join(__dirname, 'acquisition.log'));
       const reason = (final?.error || error.message).split('\n')[0];
+      if (final?.allocationMismatch) console.log('Acquisition: ' + reason.replace(/^Error: /, ''));
+      const configurationStopped = final?.retryable === false && hasProvenCleanup(final, a.session, exited);
       lastError = Error(reason + '. Inspect ' + logFile +
-        (retry ? '; acquisition attempts exhausted.' : '; cleanup is unproven or placement is uncertain; restart the console before another launch.'));
+        (retry ? '; acquisition attempts exhausted.' : configurationStopped
+          ? '; cleanup completed; configuration requires a new selection and fresh console boot.'
+          : '; cleanup is unproven or placement is uncertain; restart the console before another launch.'));
       if (!retry) throw lastError;
     }
     if (attempt < MAX_ATTEMPTS - 1) await delay(1000);

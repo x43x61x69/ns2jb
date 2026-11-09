@@ -12,8 +12,10 @@ const normalizedPath = require("./normalized-path.cjs");
 const {qualifyOverlap} = require("./wave-overlap.cjs");
 const {packet, response} = require("../../shared/ipc.cjs");
 const functions = require("../../shared/sdk-functions.json");
+const {fromEnvironment, assertAllocationCost} = require('../../shared/acquisition-profile.cjs');
 
 async function main() {
+  const acquisitionProfile = fromEnvironment();
   // Fixed geometry and bounded attempts from the Switch 2 hardware run.
   const probeReadSize = 0x180000, markerOffset = 0x2340;
   const trialRange = 0x600000, cacheReadSize = 0x200000, fragmentCount = 16;
@@ -51,7 +53,7 @@ async function main() {
   const preReleaseBuffer = b + 0x1d000, clearReportBuffer = b + 0x1e000, pinBuffer = b + 0x1f000;
   const triggerInput = b + 0x30000;
   const tailInputs = Array.from({length: 4}, (_, i) => b + 0x32000 + i * 0x2000);
-  const report = {session: live.session, scratch, canary, extent, markerOffset,
+  const report = {session: live.session, acquisitionProfile, scratch, canary, extent, markerOffset,
     probeReadSize, trialRange, cacheReadSize, fragmentCount, minimumCacheHeld,
     metadataAttempts, fieldCopies, waveAttempts, plannerCycle,
     started: new Date().toISOString(), cases: []};
@@ -448,6 +450,7 @@ async function main() {
       const heldPaths = rows.filter(row => ['canary', 'filler0', 'filler1', 'guard0', 'guard1'].includes(row.role));
       const beforeRelease = rows.find(row => row.role === 'preRelease');
       const canaryRow = rows.find(row => row.role === 'canary');
+      const pinRow = rows.find(row => row.role === 'pin');
       const overlap = qualifyOverlap(rows);
       const guardBytes = await s.readOwned(completedFlag, 32);
       const nativeGuard = {completed: guardBytes.readUInt32LE(completedDecision - completedFlag),
@@ -457,8 +460,10 @@ async function main() {
         nativeGuard, triggerAborted: Boolean(nativeGuard.completed || nativeGuard.earlyHole || nativeGuard.minimumSpacing),
         receiveOrderMarginUs: rows.find(r => r.role === 'hole').endUs - rows.find(r => r.role === 'guard1').startUs,
         preReleaseUsed: group.held[5] - beforeRelease.memory[5],
-        restored: after[5] + (createPin ? 13616 : 0) === group.before[5], baseline: group.before[5], after: after[5],
+        restored: after[5] + (createPin ? acquisitionProfile.expectedBytes : 0) === group.before[5], baseline: group.before[5], after: after[5],
         newPersistentBytes: createPin ? group.before[5] - after[5] : 0,
+        ...(createPin ? {pinWindow: canaryRow.startUs < pinRow.startUs && pinRow.endUs < canaryRow.endUs,
+          pinCost: group.before[5] - after[5], expectedPinCost: acquisitionProfile.expectedBytes} : {}),
         allPending: overlap.qualified, pendingMode: overlap.mode,
         selectedMarker: trigger.result === 0 && Buffer.from(trigger.inline, 'hex').readUInt32LE() === 1,
         changedPaths: heldPaths.filter(r => r.result !== (r.role === 'canary' ? 0 : 0x202) ||
@@ -482,13 +487,6 @@ async function main() {
         throw Error('A protected request ended during the overwrite; retain resources for recovery');
       }
       await closeGroup();
-      if (createPin) {
-        const pinRow = rows.find(r => r.role === 'pin');
-        // Record the window instead of aborting so the caller can release the
-        // pin and retry; a missed window leaves an unusable pinned allocation.
-        row.pinWindow = canaryRow.startUs < pinRow.startUs && pinRow.endUs < canaryRow.endUs;
-        row.pinCost = row.newPersistentBytes;
-      }
       check(rows.find(r => r.role === 'pin').result === 0, 'Pinning request failed');
       check(rows.filter(r => ['commit', 'hole', 'clearReport', 'preRelease'].includes(r.role)).every(r => r.result === 0), 'Ordinary gap request failed');
       check(rows.filter(r => r.role.startsWith('tail')).every(r => r.result === 0x320002), 'Deferred seed result differs');
@@ -518,18 +516,25 @@ async function main() {
     async function releasePin() {
       if (!pinHandle) return;
       const handle = pinHandle;
+      try {
+        check(s.handles.has(handle), 'Pin handle ownership was lost');
+        await s.close(handle);
+      }
+      catch (error) {
+        report.placementUncertain = true;
+        report.pinReleaseError = error.stack;
+        throw error;
+      }
       pinHandle = null;
       report.pinHandle = null;
-      try { if (s.handles.has(handle)) await s.close(handle); else s.handles.delete(handle); }
-      catch { s.handles.delete(handle); }
     }
     // The first measured wave creates the pinned storage, so a missed canary
     // window is retried here; later waves reuse the pin.
     async function firstWave(profile, readSize) {
       for (let attempt = 0; attempt < pinAttempts; attempt++) {
         const row = await wave(profile, readSize);
+        assertAllocationCost(acquisitionProfile, row.pinCost, 'Pinning storage');
         if (row.pinWindow) {
-          check(row.pinCost === 13616, 'Pinning allocation cost changed');
           return row;
         }
         if (!row.restored) break;
@@ -632,9 +637,9 @@ async function main() {
           check(!prime.result && prime.bytes.equals(control.bytes.subarray(0, 16)), 'Candidate content differs');
           const afterCandidate = await memory();
           cache.allocationBytes = beforeCandidate[5] - afterCandidate[5];
+          assertAllocationCost(acquisitionProfile, cache.allocationBytes, 'Candidate storage');
           group.before[5] -= cache.allocationBytes;
           group.held[5] -= cache.allocationBytes;
-          check(cache.allocationBytes === 13616, 'Candidate allocation cost differs');
           await save();
 
           const ownerControls = [];
@@ -1076,6 +1081,10 @@ async function main() {
     if (error instanceof StopRequested) report.stopped = true;
     else {
       report.error = error.stack;
+      if (error.allocationMismatch) {
+        report.allocationMismatch = error.allocationMismatch;
+        report.retryable = false;
+      }
       if (error.workerFailure) report.workerFailure = error.workerFailure;
       process.exitCode = 1;
       // Save the host-side failure before attempting any diagnostic RPC.

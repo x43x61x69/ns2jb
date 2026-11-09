@@ -11,6 +11,7 @@ const {listen} = require('./engine/lib/connection.cjs');
 const {NativeClient} = require('./engine/lib/native.cjs');
 const {qualify} = require('./engine/lib/qualify.cjs');
 const {serve} = require('./engine/lib/bridge.cjs');
+const acquisitionProfiles = require('./engine/shared/acquisition-profile.cjs');
 
 const port = 39380;
 const save = (file, value) => fs.writeFile(file, JSON.stringify(value, null, 2) + '\n', {mode: 0o600});
@@ -89,18 +90,19 @@ async function sourceDigest() {
   return crypto.createHash('sha256').update(JSON.stringify(entries)).digest('hex');
 }
 
-async function startEngine(directory, dumpDirectory = null, held = false) {
+async function startEngine(directory, dumpDirectory = null, held = false, acquisitionProfile = acquisitionProfiles.PROFILES.internal) {
+  const profileEnvironment = acquisitionProfiles.environment(acquisitionProfile);
   const log = await fs.open(path.join(directory, 'run.log'), 'wx', 0o600);
   const output = createWriteStream(null, {fd: log.fd, autoClose: false});
   const child = spawn(process.execPath, [path.join(directory, 'switch2/pipeline.cjs'),
     ...(dumpDirectory ? ['--dump-firmware'] : []), ...(held ? ['--hold-rpc'] : [])],
     {cwd: directory, stdio: ['ignore', 'pipe', 'pipe', ...(held ? ['ipc'] : [])], windowsHide: true,
-      env: {...process.env, ...(dumpDirectory ? {NS2_FIRMWARE_DUMP_DIR: dumpDirectory} : {})}});
+      env: {...process.env, ...profileEnvironment, ...(dumpDirectory ? {NS2_FIRMWARE_DUMP_DIR: dumpDirectory} : {})}});
   child.stdout.pipe(output, {end: false});
   child.stderr.pipe(output, {end: false});
   const lines = readline.createInterface({input: child.stdout});
   lines.on('line', line => {
-    if (/^[1-4]\/4 |^Firmware: /.test(line)) console.log(line);
+    if (/^[1-4]\/4 |^Firmware: |^Acquisition: /.test(line)) console.log(line);
   });
   let childError;
   child.once('error', error => {childError = error;});
@@ -166,13 +168,18 @@ function waitForRpcStop(connection, signals = process, engineFinished = null) {
 
 async function main(args = process.argv.slice(2)) {
   if (args.length === 1 && args[0] === '--help') {
-    console.log('Usage: node run.cjs [--rpc] [--dump-firmware] [computer-IP]\n' +
-      'Switch 2 only. No npm install required. See README.md for the BASIC setup.');
+    console.log('Usage: node run.cjs [--rpc] [--dump-firmware] [--experimental-sd] [computer-IP]\n' +
+      'Switch 2 only. Default: internal-storage acquisition profile (13616 bytes).\n' +
+      '--experimental-sd selects 14992 bytes and requires interactive confirmation.\n' +
+      'SD mode is unvalidated; success is not guaranteed. See README.md for setup.');
     return;
   }
   const rpcMode = args.includes('--rpc') || process.env.NS2_RPC_MODE === '1';
   const dumpFirmware = args.includes('--dump-firmware');
-  const host = await chooseHost(args.filter(arg => arg !== '--rpc' && arg !== '--dump-firmware'));
+  if (args.filter(arg => arg === '--experimental-sd').length > 1) throw Error('Repeated option: --experimental-sd');
+  const host = await chooseHost(args.filter(arg => !['--rpc', '--dump-firmware', '--experimental-sd'].includes(arg)));
+  const acquisitionProfile = args.includes('--experimental-sd')
+    ? await acquisitionProfiles.confirmExperimentalSd() : acquisitionProfiles.PROFILES.internal;
   const basicArgs = Number(process.env.NS2_BASIC_ARITY || 5);
   const command = connectCommand(host, basicArgs);
   const workspace = path.join(__dirname, 'runs');
@@ -189,7 +196,8 @@ async function main(args = process.argv.slice(2)) {
   }
   const directory = await fs.mkdtemp(path.join(workspace, 'switch2-'));
   await fs.writeFile(path.join(directory, 'connect.txt'), command + '\n', {mode: 0o600});
-  const result = {platform: 2, sourceSha256: await sourceDigest(), started: new Date().toISOString(), verified: false};
+  const result = {platform: 2, sourceSha256: await sourceDigest(), acquisitionProfile,
+    started: new Date().toISOString(), verified: false};
   let native, bridge, engine, failure;
   try {
     const pairTimeout = Number(process.env.NS2_PAIR_TIMEOUT_MS || 10 * 60 * 1000);
@@ -214,7 +222,7 @@ async function main(args = process.argv.slice(2)) {
       addresses: {...connected.addresses, session: path.basename(directory), target: 'switch2'}});
     for (const name of ['shared', 'switch2'])
       await fs.cp(path.join(__dirname, 'engine', name), path.join(directory, name), {recursive: true});
-    engine = await startEngine(directory, dumpDirectory, rpcMode);
+    engine = await startEngine(directory, dumpDirectory, rpcMode, acquisitionProfile);
     if (rpcMode) await engine.ready;
     else checkEngine(await engine.finished);
     result.fs = JSON.parse(await fs.readFile(path.join(directory, 'switch2/fs-execution-current.json')));
