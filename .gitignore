@@ -1,5 +1,6 @@
 /runs/
 /dumps/
+/game-dumps/
 .DS_Store
 ._*
 .test-ns2jb/

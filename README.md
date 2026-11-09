@@ -97,6 +97,82 @@ If a run fails, keep the `runs` folder and restart the console before trying
 again. Enter `REMOVE` only once per application process. Logs and temporary
 memory captures stay in `runs`; they are not part of the distributable.
 
+## Game file dumps: ExeFS and RomFS
+
+Start a normal held run and wait for all checks to pass:
+
+```sh
+node run.cjs --rpc <computer-IP>
+```
+
+Keep that runner and SmileBASIC open. In another terminal, use the **run folder
+printed by that runner** and the game's 16-digit program Title ID:
+
+```sh
+# Both filesystems (the default)
+node dump-game.cjs runs/switch2-RUNID <title-id> --both --out game-dumps/my-game
+
+# Select only one filesystem; each output directory must be new
+node dump-game.cjs runs/switch2-RUNID <title-id> --exefs --out game-dumps/my-game-code
+node dump-game.cjs runs/switch2-RUNID <title-id> --romfs --out game-dumps/my-game-data
+```
+
+`--out` is optional; the default is a unique directory below
+`game-dumps/<title-id>/`. Existing destinations, including empty directories,
+are refused. The output contains extracted files, not NSP/XCI packages or raw
+RomFS images:
+
+```text
+my-game/
+  exefs/          main, main.npdm, sdk, rtld, subsdk*, and other listed files
+  romfs/          the original directory tree, including empty directories
+  dump.json       selection, source methods, verified file hashes and status
+  files.jsonl     append-only records of completed files
+  progress.json   current file and byte count
+```
+
+ExeFS uses the same retained Loader root as the existing system-code capture.
+`--storage` selects its content location: `2` = gamecard, `3` = built-in system,
+`4` = internal user storage (default), `5` = SD. For example, add `--storage 2`
+for a gamecard. `--attributes 0..15` overrides the Loader content attributes
+(default `1`, matching the existing CodeFS capture).
+
+RomFS opens FSP `OpenDataFileSystemByProgramId` (command 9). The OS resolves
+that program's data filesystem; the command does not select an arbitrary NCA
+or explicitly choose/merge a particular base/update revision. `--storage` and
+`--attributes` apply only to ExeFS. The source methods are recorded separately
+in `dump.json`. Match the recorded `main` NSO Build ID to the executable version
+you intend to patch; the tool also prints that Build ID after a complete dump.
+
+Reads are bounded to 256 KiB and use the existing console-side SHA-256 transfer
+verification. Completed local files are synced and read back for SHA-256 before
+publication. Directory enumeration continues to EOF rather than the old
+128-entry probe limit. Unexpected names/types, duplicate entries, short reads,
+changing file sizes, and more than one million total entries stop the export.
+On case-insensitive host volumes, colliding game filenames also stop the dump;
+use a case-sensitive volume for games containing such names.
+
+Use one dumper per run and do not run other RPC/save/modloader operations at
+the same time. A `game-dump.lock` prevents overlapping dump commands. On failure,
+`dump.json` stays incomplete and partial data remains under `.partials/`; no
+native operation is replayed. An uncertain native failure blocks further
+requests and records retained allocation/handle identities. Restart the console
+when the error reports deferred cleanup. After an interrupted host process,
+check that it has exited before removing its stale lock. Resume/overwrite is
+not implemented; a new attempt needs a new destination. A failed dump never
+clears an earlier output or the existing firmware `dumps/` directory.
+
+This host command can use a completed compatible held run without copying or patching its
+engine source. The console requests open, enumerate and read content; they do
+not write game/save files. Access is still subject to the filesystem services
+available in that session. **ExeFS and RomFS exports have offline regression
+coverage but have not been validated on hardware.** Permission/mount failures
+are reported rather than treated as empty or successful dumps.
+
+Protocol references:
+[libnx FSP wrappers](https://github.com/switchbrew/libnx/blob/master/nx/source/services/fs.c),
+[libnx Loader wrappers](https://github.com/switchbrew/libnx/blob/master/nx/source/services/fsldr.c).
+
 ## Optional system-code dump
 
 To capture installed system-program code from your own console, use this
@@ -183,6 +259,18 @@ original instructions. Switch 2 only; no npm install or compiler needed.
 Times below use UTC+08:00 (Asia/Taipei) and record when changes were committed
 in this derivative. The base is
 [kurumuz/ns2jb](https://gitlab.com/kurumuz/ns2jb) at `81d5bb1`.
+
+### 2026-11-09 16:13 — game filesystem export command
+
+- Add `dump-game.cjs` with `--exefs`, `--romfs` and `--both` for a completed
+  held session, plus ExeFS storage/attribute selection.
+- Export recursive directory trees with bounded, verified reads, per-file
+  SHA-256, an NSO Build ID, progress records and an incomplete-on-failure journal.
+- Refuse existing destinations and concurrent dump commands; stop native
+  requests after uncertain failures and retain resource identities for diagnosis.
+- Add offline coverage for streamed exports, directory pagination, stale proofs,
+  malformed paths, incomplete reads and cleanup uncertainty. Hardware validation
+  remains pending.
 
 ### 2026-11-09 15:25 — documentation cleanup
 
