@@ -3,11 +3,22 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const {fileSize} = require('./game-dump.cjs');
 const check = (ok, message) => {if (!ok) throw Error(message);};
-const resultError = (label, reply) => {
+const resultCode = (label, reply) => {
   check(reply && Number.isInteger(reply.result) && reply.result >= 0 && reply.result <= 0xffffffff,
     label + ' returned an invalid result');
+  const code = reply.result & 0x3fffff;
+  check(reply.result === 0 || code !== 0, label + ' returned an invalid success result');
+  return code;
+};
+const resultError = (label, reply) => {
+  resultCode(label, reply);
   check(reply.result === 0, label + ' failed: 0x' + (reply.result & 0x3fffff).toString(16));
 };
+const STORAGES = [{id: 4, name: 'BuiltInUser'}, {id: 5, name: 'SdCard'},
+  {id: 2, name: 'GameCard'}, {id: 3, name: 'BuiltInSystem'}];
+// NCM module 5: ContentMetaNotFound=7, per-storage database inactive=261..264.
+// https://github.com/Atmosphere-NX/Atmosphere/blob/master/libraries/libvapours/include/vapours/results/ncm_results.hpp
+const ncmResult = description => description * 512 + 5;
 
 // Wire layouts follow libnx fs.c (command 9) and fsldr.c (20.0.0+ command 0):
 // https://github.com/switchbrew/libnx/tree/master/nx/source/services
@@ -19,9 +30,10 @@ function codeInput(title, storage, attributes) {
 }
 
 function createClient({Session, filesystem, domain, request, acquisition, root, loader,
-  storage = 4, attributes = 1, title}) {
-  let s, uncertain = false;
+  storage = 'auto', attributes = 1, title, note = () => {}}) {
+  let s, uncertain = false, nativeInfo;
   const mounts = new Map();
+  const exports = new Set();
   const native = async action => {
     check(!uncertain, 'Native result is uncertain; further requests are blocked');
     try {return await action();}
@@ -41,6 +53,55 @@ function createClient({Session, filesystem, domain, request, acquisition, root, 
     resultError('FileGetSize', reply);
     return fileSize(reply.data.readBigUInt64LE());
   };
+  const closeExport = async handle => {
+    if (!uncertain && exports.has(handle)) {
+      await native(async () => {
+        const reply = await request(acquisition.socketPath, {command: 'root-native-close-handle', handle});
+        check(reply.closed === handle, 'NCM exported handle did not close');
+      });
+      exports.delete(handle);
+    }
+  };
+  async function detectStorage() {
+    const sm = nativeInfo.services?.find(item => item.name === 'pm:shell')?.sm;
+    check(Number.isInteger(sm) && sm > 0, 'NCM discovery requires the retained SM client; specify --storage to override');
+    const lookup = await native(() => request(acquisition.socketPath,
+      {command: 'root-native-sm-service', handle: sm, name: 'ncm'}));
+    check(lookup.transport === 0 && lookup.result === 0 && lookup.moves?.length === 1 &&
+      Number.isInteger(lookup.moves[0]) && lookup.moves[0] > 0, 'NCM lookup failed; specify --storage to override');
+    const ncm = lookup.moves[0]; exports.add(ncm);
+    const probes = [], candidates = [];
+    try {
+      for (const location of STORAGES) {
+        const opened = await native(() => s.ipc('Game dump NCM OpenContentMetaDatabase', ncm, 5, Buffer.from([location.id])));
+        if (resultCode('NCM database ' + location.name, opened) === ncmResult(location.id + 259)) {
+          probes.push({...location, status: 'database-inactive'}); continue;
+        }
+        resultError('NCM database ' + location.name, opened);
+        const database = ownedHandle(opened);
+        try {
+          const input = Buffer.alloc(8); input.writeBigUInt64LE(BigInt('0x' + title));
+          const reply = await native(() => s.ipc('Game dump NCM GetLatestContentMetaKey', database, 6, input));
+          if (resultCode('NCM metadata ' + location.name, reply) === ncmResult(7)) {
+            probes.push({...location, status: 'title-not-found'}); continue;
+          }
+          resultError('NCM metadata ' + location.name, reply);
+          check(reply.data.length >= 16 && reply.data.readBigUInt64LE() === BigInt('0x' + title),
+            'NCM returned a short or mismatched content-meta key');
+          const key = {id: title, version: reply.data.readUInt32LE(8), type: reply.data[12], installType: reply.data[13]};
+          const executable = [1, 0x80].includes(key.type) && key.installType === 0;
+          const probe = {...location, status: executable ? 'found' : 'not-a-full-program', key};
+          probes.push(probe);
+          if (executable) candidates.push(probe);
+        } finally {await closeHandle(database);}
+      }
+    } finally {await closeExport(ncm);}
+    check(candidates.length, 'NCM found no complete program for ' + title + '; check the Title ID/media or specify --storage');
+    check(candidates.length === 1, 'Multiple ExeFS storage candidates: ' + candidates.map(c => c.id + ':' + c.name + ':v' + c.key.version).join(', ') + '; specify --storage to select one');
+    const selected = candidates[0];
+    note('ExeFS: NCM selected ' + selected.name + ' (' + selected.id + '), metadata version ' + selected.key.version);
+    return {storage: selected.id, selection: 'ncm', probes, key: selected.key};
+  }
 
   return {
     session: acquisition.session,
@@ -53,6 +114,7 @@ function createClient({Session, filesystem, domain, request, acquisition, root, 
         'The held native worker is not idle');
       if (loader) check(info.domainCopies?.some(item => item.handle === loader.copy.handle),
         'The verified Loader root is no longer retained');
+      nativeInfo = info;
       s = new Session('game-dump-' + Date.now() + '-' + process.pid, 0x80000);
       // The dump journal records progress; avoid a per-RPC log for gigabytes of data.
       s.record = async () => {};
@@ -60,6 +122,7 @@ function createClient({Session, filesystem, domain, request, acquisition, root, 
     },
     async open(part) {
       check(s?.base && !mounts.has(part), 'Dump session is not initialized or part is already open');
+      const discovery = part === 'exefs' && storage === 'auto' ? await detectStorage() : null;
       const borrowed = part === 'exefs' ? loader?.copy.handle : root.rootHandle;
       check(Number.isInteger(borrowed) && borrowed > 0, 'Required filesystem root proof is missing');
       // Own an additional root reference; never close or alter the held root.
@@ -70,11 +133,12 @@ function createClient({Session, filesystem, domain, request, acquisition, root, 
         const output = s.base + 0x4000, infoSize = 0x1a4, guard = Buffer.alloc(32, 0x5c);
         await native(() => s.write(output - 32, Buffer.concat([guard, Buffer.alloc(infoSize), guard])));
         opened = await native(() => s.ipc('Game dump OpenCodeFileSystem', ownRoot, 0,
-          codeInput(title, storage, attributes), {receive: [{address: output, size: infoSize, mode: 0}]}));
+          codeInput(title, discovery?.storage ?? storage, attributes), {receive: [{address: output, size: infoSize, mode: 0}]}));
         resultError('OpenCodeFileSystem', opened);
         const info = await native(() => s.readOwned(output - 32, infoSize + 64));
         check(info.subarray(0, 32).equals(guard) && info.subarray(-32).equals(guard), 'Code-info output exceeded its buffer');
-        metadata = {method: 'Loader.OpenCodeFileSystem', storage, attributes,
+        metadata = {method: 'Loader.OpenCodeFileSystem', storage: discovery?.storage ?? storage, attributes,
+          storageSelection: discovery?.selection || 'manual', ...(discovery ? {storageDiscovery: discovery} : {}),
           codeInfoHex: info.subarray(32, 32 + infoSize).toString('hex')};
       } else {
         check(part === 'romfs', 'Unknown filesystem selection');
@@ -140,15 +204,21 @@ function createClient({Session, filesystem, domain, request, acquisition, root, 
     async finish() {
       if (!s) return {complete: true};
       let error;
-      try {if (!uncertain) await native(() => s.cleanup());}
+      try {
+        if (!uncertain) {
+          for (const handle of [...exports]) await closeExport(handle);
+          await native(() => s.cleanup());
+        }
+      }
       catch (failure) {error = failure.message;}
-      const complete = !uncertain && s.base === 0 && s.handles.size === 0;
-      return {complete, deferred: !complete, base: s.base, handles: [...s.handles], ...(error ? {error} : {})};
+      const complete = !uncertain && s.base === 0 && s.handles.size === 0 && exports.size === 0;
+      return {complete, deferred: !complete, base: s.base, handles: [...s.handles],
+        ...(exports.size ? {exportedHandles: [...exports]} : {}), ...(error ? {error} : {})};
     },
   };
 }
 
-async function loadClient({run, title, parts, storage, attributes}) {
+async function loadClient({run, title, parts, storage, attributes, note}) {
   const read = filename => fs.readFile(filename, 'utf8').then(JSON.parse);
   const engine = path.join(run, 'switch2');
   const connection = await read(path.join(run, 'connection.json'));
@@ -173,7 +243,7 @@ async function loadClient({run, title, parts, storage, attributes}) {
     'This run has no verified, restored Loader-root copy');
   }
   const {Session} = require(path.join(engine, 'app/session.cjs'));
-  return createClient({Session, acquisition, root, loader, title, storage, attributes,
+  return createClient({Session, acquisition, root, loader, title, storage, attributes, note,
     filesystem: require(path.join(engine, 'app/filesystem.cjs')),
     domain: require(path.join(engine, 'app/domain.cjs')),
     request: require(path.join(engine, 'tools/endpoint.cjs')).request});

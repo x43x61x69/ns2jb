@@ -130,6 +130,8 @@ test('cleanup uncertainty prevents a successful manifest', async t => {
 
 test('CLI validates selection, title, storage and repeated/missing options before connection', () => {
   assert.equal(parseArgs(['--help']).help, true);
+  assert.equal(parseArgs(['/run', title]).storage, 'auto');
+  assert.equal(parseArgs(['/run', title, '--storage', 'auto']).storage, 'auto');
   const parsed = parseArgs(['/run', title.toUpperCase(), '--romfs', '--storage', '2', '--attributes', '3']);
   assert.deepEqual(parsed.parts, ['romfs']);
   assert.equal(parsed.title, title);
@@ -142,11 +144,12 @@ test('CLI validates selection, title, storage and repeated/missing options befor
     assert.throws(() => parseArgs(args));
 });
 
-function nativeFixture({failRead = false, idle = true, directoryEntries = 0} = {}) {
+function nativeFixture({failRead = false, idle = true, directoryEntries = 0,
+  storage = 2, databases = {}, failMetadata = false, databaseError = null, invalidExportClose = false} = {}) {
   const events = [], instances = [], data = Buffer.alloc(16, 0x42);
   let next = 100;
   class Session {
-    constructor() {this.handles = new Set(); this.base = 0; this.cursors = new Map(); instances.push(this);}
+    constructor() {this.handles = new Set(); this.base = 0; this.cursors = new Map(); this.databases = new Map(); instances.push(this);}
     async initialize() {events.push('initialize'); this.base = 0x100000;}
     async write(at, bytes) {this.lastWrite = {at, bytes};}
     async readOwned(at, size) {
@@ -155,6 +158,26 @@ function nativeFixture({failRead = false, idle = true, directoryEntries = 0} = {
     }
     async ipc(label, handle, command, input, options) {
       events.push({label, handle, command, input, options});
+      if (label === 'Game dump NCM OpenContentMetaDatabase') {
+        assert.equal(command, 5); assert.equal(input.length, 1);
+        const location = input[0];
+        if (databaseError && location === databaseError.storage) return {result: databaseError.result};
+        if (!(location in databases)) return {result: (location + 259) * 512 + 5};
+        const h = next++; this.handles.add(h); this.databases.set(h, location);
+        return {result: 0, moves: [h], copies: []};
+      }
+      if (label === 'Game dump NCM GetLatestContentMetaKey') {
+        assert.equal(command, 6); assert.equal(input.readBigUInt64LE(), BigInt('0x' + title));
+        if (failMetadata) throw Error('NCM native request timed out');
+        const metadata = databases[this.databases.get(handle)];
+        // An update-only database has no metadata for the exact base Title ID.
+        if (!metadata || metadata.patchOnly) return {result: 7 * 512 + 5};
+        const data = Buffer.alloc(16);
+        data.writeBigUInt64LE(BigInt('0x' + (metadata.id || title)));
+        data.writeUInt32LE(metadata.version || 0, 8);
+        data[12] = metadata.type ?? 0x80; data[13] = metadata.installType ?? 0;
+        return {result: 0, data};
+      }
       if (label === 'Game dump ReadDirectory') {
         const at = this.cursors.get(handle), count = Math.min(4, directoryEntries - at);
         this.directoryBytes = Buffer.alloc(count * 0x310);
@@ -194,11 +217,20 @@ function nativeFixture({failRead = false, idle = true, directoryEntries = 0} = {
       return data.subarray(offset, offset + length);
     },
   };
-  const client = createClient({Session, domain, filesystem, title, storage: 2, attributes: 3,
+  const client = createClient({Session, domain, filesystem, title, storage, attributes: 3,
     acquisition: {session: 'session', socketPath: '/unused'}, root: {rootHandle: 8}, loader: {copy: {handle: 9}},
-    request: async (_socket, request) => request.command === 'root-info'
-      ? {session: 'session', initialized: true, clones: [8]}
-      : {session: 'session', worker: {joined: idle}, domainCopies: [{handle: 9}]}});
+    request: async (_socket, request) => {
+      events.push({endpoint: request.command, ...request});
+      if (request.command === 'root-info') return {session: 'session', initialized: true, clones: [8]};
+      if (request.command === 'root-native-sm-service') {
+        assert.equal(request.name, 'ncm'); assert.equal(request.handle, 6);
+        return {transport: 0, result: 0, moves: [50]};
+      }
+      if (request.command === 'root-native-close-handle') {
+        assert.equal(request.handle, 50); return invalidExportClose ? {} : {closed: 50};
+      }
+      return {session: 'session', worker: {joined: idle}, domainCopies: [{handle: 9}], services: [{name: 'pm:shell', sm: 6}]};
+    }});
   return {client, events, instances};
 }
 
@@ -235,6 +267,75 @@ test('native read uncertainty blocks all subsequent cleanup requests and preserv
   assert.equal(cleanup.base, 0x100000);
   await assert.rejects(client.readFile(file.handle, 0, 16), /further requests are blocked/);
   assert.equal(events.length, before);
+});
+
+for (const [name, databases, expected] of [
+  ['SD title', {5: {version: 42}}, 5],
+  ['internal title', {4: {version: 7}}, 4],
+  ['gamecard with internal update', {4: {patchOnly: true}, 2: {version: 0}}, 2],
+  ['system program', {3: {version: 100, type: 1}}, 3],
+]) test('NCM automatically detects ' + name + ' before opening CodeFS once', async () => {
+  const {client, events} = nativeFixture({storage: 'auto', databases});
+  await client.initialize();
+  const source = await client.open('exefs');
+  assert.equal(source.storage, expected);
+  assert.equal(source.storageSelection, 'ncm');
+  assert.equal(source.storageDiscovery.probes.length, 4);
+  const opens = events.filter(e => e.label === 'Game dump OpenCodeFileSystem');
+  assert.equal(opens.length, 1); assert.equal(opens[0].input[1], expected);
+  assert.equal(events.filter(e => e.endpoint === 'root-native-close-handle').length, 1);
+  assert.equal(events.includes('close:50'), false, 'endpoint-owned NCM is closed through its owner');
+  await client.close('exefs'); assert.equal((await client.finish()).complete, true);
+});
+
+for (const [name, databases, expected] of [
+  ['ambiguous copies', {4: {version: 1}, 5: {version: 2}}, /Multiple ExeFS storage candidates/],
+  ['no installed program', {4: {patchOnly: true}}, /no complete program/],
+  ['fragment-only metadata', {5: {installType: 1}}, /no complete program/],
+  ['mismatched metadata', {4: {id: '0100000000000001'}}, /mismatched content-meta key/],
+]) test('automatic detection refuses ' + name + ' without trying a guessed CodeFS location', async () => {
+  const {client, events} = nativeFixture({storage: 'auto', databases});
+  await client.initialize(); await assert.rejects(client.open('exefs'), expected);
+  assert.equal(events.filter(e => e.label === 'Game dump OpenCodeFileSystem').length, 0);
+  assert.equal((await client.finish()).complete, true);
+});
+
+test('unexpected NCM errors are not silently treated as missing media', async () => {
+  const {client, events} = nativeFixture({storage: 'auto', databaseError: {storage: 4, result: 0xf601}});
+  await client.initialize(); await assert.rejects(client.open('exefs'), /NCM database BuiltInUser failed/);
+  assert.equal(events.filter(e => e.label === 'Game dump NCM OpenContentMetaDatabase').length, 1);
+  assert.equal(events.filter(e => e.label === 'Game dump OpenCodeFileSystem').length, 0);
+  assert.equal((await client.finish()).complete, true);
+});
+
+test('NCM native timeouts stop storage discovery and retain the endpoint export without further requests', async () => {
+  const {client, events} = nativeFixture({storage: 'auto', databases: {4: {version: 1}}, failMetadata: true});
+  await client.initialize(); await assert.rejects(client.open('exefs'), /NCM native request timed out/);
+  const before = events.length, cleanup = await client.finish();
+  assert.equal(events.length, before);
+  assert.equal(cleanup.deferred, true);
+  assert.deepEqual(cleanup.exportedHandles, [50]);
+  assert.equal(events.filter(e => e.label === 'Game dump NCM OpenContentMetaDatabase').length, 1);
+});
+
+test('manual storage override and RomFS-only export bypass NCM discovery', async () => {
+  for (const [storage, part] of [[5, 'exefs'], ['auto', 'romfs']]) {
+    const {client, events} = nativeFixture({storage});
+    await client.initialize(); const source = await client.open(part);
+    assert.equal(events.some(e => e.endpoint === 'root-native-sm-service'), false);
+    if (part === 'exefs') {assert.equal(source.storage, 5); assert.equal(source.storageSelection, 'manual');}
+    await client.close(part); assert.equal((await client.finish()).complete, true);
+  }
+});
+
+test('an unproven NCM export close is never replayed during cleanup', async () => {
+  const {client, events} = nativeFixture({storage: 'auto', databases: {5: {version: 1}}, invalidExportClose: true});
+  await client.initialize(); await assert.rejects(client.open('exefs'), /NCM exported handle did not close/);
+  const before = events.length, cleanup = await client.finish();
+  assert.equal(events.length, before);
+  assert.equal(cleanup.deferred, true);
+  assert.deepEqual(cleanup.exportedHandles, [50]);
+  assert.equal(events.filter(e => e.endpoint === 'root-native-close-handle').length, 1);
 });
 
 test('native directory pagination reaches EOF beyond the old 128-entry probe limit', async () => {

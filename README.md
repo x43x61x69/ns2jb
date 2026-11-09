@@ -132,10 +132,24 @@ my-game/
 ```
 
 ExeFS uses the same retained Loader root as the existing system-code capture.
-`--storage` selects its content location: `2` = gamecard, `3` = built-in system,
-`4` = internal user storage (default), `5` = SD. For example, add `--storage 2`
-for a gamecard. `--attributes 0..15` overrides the Loader content attributes
-(default `1`, matching the existing CodeFS capture).
+By default (`--storage auto`), it queries NCM for the exact Title ID across
+internal user storage, SD, gamecard and built-in system storage. A unique full
+Application/SystemProgram metadata key selects the storage automatically. The
+selected location and metadata version are printed; all probes and the selected
+key are recorded under `sources.exefs.storageDiscovery` in `dump.json`.
+
+Update metadata has a different ID from the base application, so an internal
+update alone is not mistaken for the base gamecard's location. This detects the
+base program's storage; its metadata version is not a claim about the effective
+patched executable version. Confirm that version using the dumped NSO Build ID.
+If multiple locations contain the exact program, discovery reports the
+candidates instead of guessing. Only known inactive-database and missing-title
+results are skipped; unexpected errors or uncertain native failures stop it.
+
+`--storage 2|3|4|5` bypasses NCM and selects gamecard/system/internal/SD manually.
+Use it to resolve ambiguous copies or when NCM metadata/SM access is unavailable.
+`--attributes 0..15` overrides the Loader content attributes (default `1`,
+matching the existing CodeFS capture). RomFS-only exports do not query NCM.
 
 RomFS opens FSP `OpenDataFileSystemByProgramId` (command 9). The OS resolves
 that program's data filesystem; the command does not select an arbitrary NCA
@@ -261,6 +275,19 @@ original instructions. Switch 2 only; no npm install or compiler needed.
 Times below use UTC+08:00 (Asia/Taipei) and record when changes were committed
 in this derivative. The base is
 [kurumuz/ns2jb](https://gitlab.com/kurumuz/ns2jb) at `81d5bb1`.
+
+### 2026-11-09 16:54 — automatic ExeFS storage discovery
+
+- Default to `--storage auto`: query NCM across internal, SD, gamecard and
+  system storage and select a unique full program matching the exact Title ID.
+- Distinguish a base application's location from update-only metadata; print
+  the selection and record the metadata/probe evidence in the dump manifest.
+- Report ambiguous locations without guessing and retain `--storage 2|3|4|5`
+  as a direct override. RomFS-only and manually selected exports bypass NCM.
+- Stop on unexpected NCM errors or uncertain native outcomes; track exported
+  NCM handles and do not replay an unproven close. Add offline regression tests
+  for storage selection, split gamecard/update layouts and failure cleanup.
+- Hardware validation remains pending.
 
 ### 2026-11-09 16:13 — game filesystem export command
 
