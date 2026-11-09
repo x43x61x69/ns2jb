@@ -4,6 +4,7 @@ const readline = require('node:readline');
 const { spawn } = require('node:child_process');
 const { a } = require('../shared/rpc.cjs');
 const { request } = require('./tools/endpoint.cjs');
+const { failureSummary } = require('./memory/wave-history.cjs');
 const { verifyProof } = require('./memory/verify-proof.cjs');
 const { save, read } = require('./ro/runtime.cjs');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -12,7 +13,7 @@ function hasProvenCleanup(report, session, exited) {
   const retained = report?.retained;
   return exited?.signal == null && Number.isInteger(exited?.code) &&
     report?.session === session && report.cleanedUp === true &&
-    !report.placementUncertain && !report.cleanupError &&
+    !report.placementUncertain && !report.cleanupError && !failureSummary(report).retainResources &&
     !report.memoryControl?.ready && !report.memoryControl?.pending &&
     !report.retainedMemory?.pending && !retained?.cacheNeedsRestore &&
     retained?.base === 0 && Array.isArray(retained.handles) && retained.handles.length === 0 &&
@@ -124,11 +125,12 @@ async function start() {
       record.retryAllowed = retry;
       record.acquisitionProfile = final?.acquisitionProfile;
       record.allocationMismatch = final?.allocationMismatch;
+      record.failureSummary = final ? failureSummary(final) : null;
       await save(supervisorReport, {stage: retry && attempt < MAX_ATTEMPTS - 1 ? 'retrying' : 'failed', attempts});
       // Keep the conventional latest log path while preserving every attempt.
       await fs.promises.copyFile(logFile, path.join(__dirname, 'acquisition.log'));
       const reason = (final?.error || error.message).split('\n')[0];
-      if (final?.allocationMismatch) console.log('Acquisition: ' + reason.replace(/^Error: /, ''));
+      if (record.failureSummary) console.log('Acquisition: ' + record.failureSummary.message);
       const configurationStopped = final?.retryable === false && hasProvenCleanup(final, a.session, exited);
       lastError = Error(reason + '. Inspect ' + logFile +
         (retry ? '; acquisition attempts exhausted.' : configurationStopped

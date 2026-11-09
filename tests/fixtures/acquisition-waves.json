@@ -1,0 +1,1150 @@
+[
+  {
+    "name": "miss-a",
+    "report": {
+      "cases": [
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 3566.3999999999996,
+          "preReleaseUsed": 10368,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1584.768,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 3134.08,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": true,
+          "allPending": false,
+          "receiveOrderMarginUs": 1347.7119999999995,
+          "preReleaseUsed": 8896,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2344.2880000000005,
+          "preReleaseUsed": 43104,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 3160.5119999999997,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2150.079999999999,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1584.3199999999997,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2697.0879999999997,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": true,
+          "allPending": false,
+          "receiveOrderMarginUs": 2496.7039999999997,
+          "preReleaseUsed": 752,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2265.2799999999997,
+          "preReleaseUsed": 10432,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1790.5280000000002,
+          "preReleaseUsed": 10432,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2720.2559999999994,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": true,
+          "allPending": false,
+          "receiveOrderMarginUs": 3389.12,
+          "preReleaseUsed": 816,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 855.2639999999992,
+          "preReleaseUsed": 10432,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 3134.624,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1482.2400000000007,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 955.8400000000001,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": true,
+          "allPending": false,
+          "receiveOrderMarginUs": 2523.5200000000004,
+          "preReleaseUsed": 816,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1546.3680000000004,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1624.8000000000002,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2095.2,
+          "preReleaseUsed": 43216,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2376.2879999999996,
+          "preReleaseUsed": 10368,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1905.1840000000002,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": true,
+          "allPending": false,
+          "receiveOrderMarginUs": 1374.0159999999996,
+          "preReleaseUsed": 8944,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2504.8,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2826.3679999999995,
+          "preReleaseUsed": 10368,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": true,
+          "allPending": false,
+          "receiveOrderMarginUs": 2668.2880000000005,
+          "preReleaseUsed": 41568,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2083.776,
+          "preReleaseUsed": 10256,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2345.152,
+          "preReleaseUsed": 10544,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        }
+      ],
+      "cleanedUp": false,
+      "placementUncertain": true,
+      "retained": {
+        "handles": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ],
+        "threads": []
+      },
+      "error": "Error: Overwrite missed the qualified canary; retain resources for recovery"
+    }
+  },
+  {
+    "name": "worker-timeout",
+    "report": {
+      "cases": [
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": true,
+          "allPending": false,
+          "receiveOrderMarginUs": 1960.96,
+          "preReleaseUsed": 8896,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        }
+      ],
+      "cleanedUp": false,
+      "placementUncertain": false,
+      "retained": {
+        "handles": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20
+        ],
+        "threads": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ]
+      },
+      "error": "Error: Native batch did not terminate",
+      "workerFailure": {
+        "timeoutMs": 15000,
+        "observed": "not-terminated",
+        "executingStep": null,
+        "label": "worker-0"
+      },
+      "active": {
+        "profile": "positive",
+        "wave": 7,
+        "workers": [
+          {
+            "label": "worker-0",
+            "role": "commit"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "miss-b",
+    "report": {
+      "cases": [
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1845.344,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1968.8959999999997,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": true,
+          "allPending": false,
+          "receiveOrderMarginUs": 2125.0560000000005,
+          "preReleaseUsed": 8896,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": true,
+          "allPending": false,
+          "receiveOrderMarginUs": 3110.5600000000004,
+          "preReleaseUsed": 752,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1977.536,
+          "preReleaseUsed": 10432,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1825.0559999999996,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1079.3919999999998,
+          "preReleaseUsed": 10544,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1521.8560000000007,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2691.7120000000004,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": true,
+          "allPending": false,
+          "receiveOrderMarginUs": 1976.8959999999997,
+          "preReleaseUsed": 640,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 3048.032,
+          "preReleaseUsed": 10432,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2019.7120000000004,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2350.5600000000004,
+          "preReleaseUsed": 10432,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1808.2559999999994,
+          "preReleaseUsed": 43104,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1248.1280000000006,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2624.0319999999992,
+          "preReleaseUsed": 10432,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2396.3199999999997,
+          "preReleaseUsed": 10320,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2407.776,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1411.424,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2559.1680000000006,
+          "preReleaseUsed": 10432,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1851.0719999999992,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": true,
+          "allPending": false,
+          "receiveOrderMarginUs": 2489.568,
+          "preReleaseUsed": 704,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2121.151999999999,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": true,
+          "allPending": false,
+          "receiveOrderMarginUs": 1779.199999999999,
+          "preReleaseUsed": 41568,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1165.8559999999998,
+          "preReleaseUsed": 10368,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 4127.2,
+          "preReleaseUsed": 10256,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2558.9759999999997,
+          "preReleaseUsed": 43104,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2224.192,
+          "preReleaseUsed": 10320,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": true,
+          "allPending": false,
+          "receiveOrderMarginUs": 2614.656,
+          "preReleaseUsed": 528,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2165.4719999999998,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        }
+      ],
+      "cleanedUp": false,
+      "placementUncertain": true,
+      "retained": {
+        "handles": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ],
+        "threads": []
+      },
+      "error": "Error: Overwrite missed the qualified canary; retain resources for recovery"
+    }
+  },
+  {
+    "name": "last-aborted-miss",
+    "report": {
+      "cases": [
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1819.231999999999,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2656.767999999999,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 3375.392,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1985.4719999999998,
+          "preReleaseUsed": 10368,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1512,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 3231.3279999999995,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2481.9839999999995,
+          "preReleaseUsed": 43104,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1598.688,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1337.4080000000004,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2095.1680000000006,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2351.0080000000007,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2368.384,
+          "preReleaseUsed": 10544,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1573.3760000000002,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1793.7920000000004,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 4827.744,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1529.6000000000004,
+          "preReleaseUsed": 43104,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2252.8320000000003,
+          "preReleaseUsed": 10368,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2548.8959999999997,
+          "preReleaseUsed": 10368,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": true,
+          "allPending": false,
+          "receiveOrderMarginUs": 1813.3120000000008,
+          "preReleaseUsed": 480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1739.391999999999,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": true,
+          "allPending": false,
+          "receiveOrderMarginUs": 1581.1839999999993,
+          "preReleaseUsed": 8944,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2452.8959999999997,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1793.2159999999994,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": true,
+          "allPending": false,
+          "receiveOrderMarginUs": 1676.1599999999999,
+          "preReleaseUsed": 752,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 3452.8639999999996,
+          "preReleaseUsed": 10256,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 1908.3519999999999,
+          "preReleaseUsed": 10224,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 3719.775999999999,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2436.8,
+          "preReleaseUsed": 10432,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": false,
+          "allPending": true,
+          "receiveOrderMarginUs": 2002.88,
+          "preReleaseUsed": 10480,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        },
+        {
+          "profile": "positive",
+          "restored": true,
+          "triggerAborted": true,
+          "allPending": false,
+          "receiveOrderMarginUs": 3363.7440000000006,
+          "preReleaseUsed": 704,
+          "canaryResult": 0,
+          "canaryType": 1,
+          "changedPaths": []
+        }
+      ],
+      "cleanedUp": true,
+      "placementUncertain": false,
+      "retained": {
+        "handles": [],
+        "threads": []
+      }
+    }
+  }
+]

@@ -320,6 +320,25 @@ Times below use UTC+08:00 (Asia/Taipei) and record when changes were committed
 in this derivative. The base is
 [kurumuz/ns2jb](https://gitlab.com/kurumuz/ns2jb) at `81d5bb1`.
 
+### 2026-11-09 21:34 — acquisition batch outcomes and timeout diagnostics
+
+- Journal each retry batch with started/measured/validated wave counts, qualified
+  windows, native aborts and verified marker hits; distinguish exhausted canary
+  attempts from a native worker that has not terminated.
+- Decide failed positive placement from the whole current batch. A final aborted
+  wave no longer hides earlier executed misses or permits an unsafe retry;
+  all-aborted batches still require independent proof of cleanup before retry.
+- Skip worker result-buffer capture after a native termination timeout because
+  IPC may still reserve those buffers. Preserve the planned worker role and
+  unjoined thread count without claiming to know the executing instruction.
+- Show a concise `Acquisition:` failure summary in the runner and retain it in
+  the probe and supervisor reports. Include reduced hardware regression cases
+  for two 30-attempt misses, an interrupted worker and a final-aborted batch.
+- Keep existing timing thresholds, allocation profiles and attempt limits.
+  These changes improve failure handling and diagnosis; they do not establish
+  a fix for canary placement or native hangs. Start a new run after updating;
+  previous run folders contain their earlier engine copy.
+
 ### 2026-11-09 21:13 — optional experimental SD acquisition profile
 
 - Keep the 13,616-byte internal-storage profile by default; report an observed

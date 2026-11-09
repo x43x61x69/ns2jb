@@ -17,6 +17,7 @@ function load(dir) {
       if (name === '../shared/rpc.cjs') return {a: {session: 'test'}};
       if (name === './ro/runtime.cjs') return runtime;
       if (name === './tools/endpoint.cjs') return {request() {throw Error('unexpected endpoint');}};
+      if (name === './memory/wave-history.cjs') return require('../engine/switch2/memory/wave-history.cjs');
       if (name === './memory/verify-proof.cjs') return {verifyProof() {throw Error('unexpected proof');}};
       return require(name);
     }});
@@ -36,12 +37,13 @@ test('only proven cleanup permits retry', () => {
   }
   assert.equal(canRetry(clean, 'test', {code: null, signal: 'SIGKILL'}), false);
 });
-for (const scenario of ['clean', 'uncertain', 'missing-report', 'foreign-session', 'profile-mismatch']) {
+for (const scenario of ['clean', 'uncertain', 'missing-report', 'foreign-session', 'profile-mismatch', 'historical-miss']) {
   test('supervisor: ' + scenario, async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'acquisition-test-'));
     try {
       fs.mkdirSync(path.join(dir, 'memory'));
       const report = {...clean, error: 'Error: simulated failure',
+        ...(scenario === 'historical-miss' ? {cases: require('./fixtures/acquisition-waves.json')[3].report.cases} : {}),
         ...(scenario === 'uncertain' ? {placementUncertain: true, cleanedUp: false} : {}),
         ...(scenario === 'foreign-session' ? {session: 'foreign'} : {}),
         ...(scenario === 'profile-mismatch' ? {retryable: false,
@@ -64,6 +66,10 @@ for (const scenario of ['clean', 'uncertain', 'missing-report', 'foreign-session
       const supervisor = JSON.parse(fs.readFileSync(path.join(dir, 'acquisition-supervisor.json')));
       assert.equal(supervisor.attempts.length, expected);
       assert.equal(supervisor.stage, 'failed');
+      if (scenario === 'historical-miss') {
+        assert.equal(supervisor.attempts[0].failureSummary.inconsistentCleanup, true);
+        assert.equal(supervisor.attempts[0].retryAllowed, false);
+      }
       if (scenario === 'profile-mismatch') {
         assert.equal(supervisor.attempts[0].retryAllowed, false);
         assert.equal(supervisor.attempts[0].allocationMismatch.observedBytes, 14992);

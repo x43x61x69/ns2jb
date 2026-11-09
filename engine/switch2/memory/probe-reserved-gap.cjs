@@ -10,6 +10,7 @@ const {packPages} = require("./session-tools.cjs");
 const {paths, pathPacket, pathPackets} = require("./paths.cjs");
 const normalizedPath = require("./normalized-path.cjs");
 const {qualifyOverlap} = require("./wave-overlap.cjs");
+const waveHistory = require('./wave-history.cjs');
 const {packet, response} = require("../../shared/ipc.cjs");
 const functions = require("../../shared/sdk-functions.json");
 const {fromEnvironment, assertAllocationCost} = require('../../shared/acquisition-profile.cjs');
@@ -60,11 +61,12 @@ async function main() {
   let saved, temporary, root, fileHandle, group, pinHandle, candidateHandle, originalRom, released = false;
   let cacheNeedsRestore = false, restoreCandidate;
   let addressPlan;
-  const save = reportWriter(file, () => ({...report, metrics: s.metrics, retained: {
+  const snapshot = () => ({...report, metrics: s.metrics, retained: {
     base: s.base, bytes: s.bytes, handles: [...s.handles], threads: [...s.threads],
     saved, temporary, root, fileHandle, group, pinHandle, candidateHandle, originalRom, cacheNeedsRestore,
     created, storages, gates, workers, released,
-  }}));
+  }});
+  const save = reportWriter(file, snapshot);
   const runControl = new RunControl({id: label, save});
   report.control = runControl.state;
   const call = (offset, args = [0, 0, 0, 0], name) => ({function: live.sdk + offset, args, name});
@@ -511,8 +513,7 @@ async function main() {
       return row;
     }
 
-    const hasWindow = row => row.restored && !row.triggerAborted && row.allPending && row.receiveOrderMarginUs >= 300 &&
-      row.preReleaseUsed >= 0x2600;
+    const {hasWindow} = waveHistory;
     async function releasePin() {
       if (!pinHandle) return;
       const handle = pinHandle;
@@ -543,18 +544,44 @@ async function main() {
       throw Error('Pinning storage did not land inside the canary window');
     }
     async function retryWave(profile) {
+      const firstCase = report.cases.length;
+      const batch = {profile, firstCaseIndex: firstCase, ...waveHistory.summarize([]),
+        limit: waveAttempts, attemptsStarted: 0, validatedWaves: 0, status: 'running'};
+      (report.retryBatches ||= []).push(batch);
       let row;
-      for (let attempt = 0; attempt < waveAttempts; attempt++) {
-        row = await wave(profile, probeReadSize);
-        if (!hasWindow(row)) continue;
-        if (profile === 'extent-present' && !row.selectedMarker) continue;
-        // An unchanged owned canary can be retried before a cache exists.
-        // Other changed paths still fail the placement checks below.
-        if (profile === 'positive' && row.canaryResult === 0 && row.canaryType === 1 &&
-            row.changedPaths.length === 0) continue;
-        break;
+      try {
+        for (let attempt = 0; attempt < waveAttempts; attempt++) {
+          batch.attemptsStarted++;
+          row = await wave(profile, probeReadSize);
+          batch.validatedWaves++;
+          if (!hasWindow(row)) continue;
+          if (profile === 'extent-present' && !row.selectedMarker) continue;
+          // Leave unexpected changes for the caller to reject.
+          if (profile === 'positive' && row.canaryResult === 0 && row.canaryType === 1 &&
+              row.changedPaths.length === 0) continue;
+          batch.status = 'selected';
+          break;
+        }
+        if (batch.status === 'running') batch.status = 'exhausted';
+        return row;
+      } catch (error) {
+        batch.status = 'failed';
+        throw error;
+      } finally {
+        Object.assign(batch, waveHistory.summarize(report.cases.slice(firstCase)));
+        batch.finished = new Date().toISOString();
+        await save();
+        console.log(JSON.stringify({stage: 'wave-summary', ...batch}));
       }
-      return row;
+    }
+    async function requirePositiveMarker(verified) {
+      const batch = report.retryBatches.at(-1);
+      const outcome = waveHistory.positiveOutcome(batch);
+      if (verified && outcome.verified) return;
+      if (outcome.retainResources) report.placementUncertain = true;
+      await save();
+      throw Error('Positive canary verification failed: ' + waveHistory.describe(batch) +
+        (report.placementUncertain ? '; retain resources for recovery' : '; no qualified marker'));
     }
     async function checkExtent() {
       const row = await retryWave('extent-present');
@@ -576,25 +603,15 @@ async function main() {
         const positive = await retryWave('positive');
         report.canaryChanged = positive.changedPaths.includes('canary') && positive.allPending &&
           positive.receiveOrderMarginUs >= 300;
-        report.markerSelected = (report.canaryChanged) && positive.canaryType === 0 &&
-          positive.changedPaths.every(name => name === 'canary') && hasWindow(positive);
-        if ((!positive.triggerAborted) && !report.markerSelected) {
-          report.placementUncertain = true;
-          await save();
-          throw Error('Overwrite missed the qualified canary; retain resources for recovery');
-        }
+        report.markerSelected = waveHistory.markerHit(positive);
+        await requirePositiveMarker(report.markerSelected);
         // The locator already traversed and checked the full input extent.
         // Keep its allocation sequence intact through the directory controls.
         await checkExtent();
         if ((report.markerSelected)) {
           const repeated = await retryWave('positive');
-          report.markerReproduced = repeated.canaryType === 0 &&
-            repeated.changedPaths.every(name => name === 'canary') && hasWindow(repeated);
-          if (!repeated.triggerAborted && !report.markerReproduced) {
-            report.placementUncertain = true;
-            await save();
-            throw Error('Repeated overwrite missed the canary; retain resources for recovery');
-          }
+          report.markerReproduced = waveHistory.markerHit(repeated);
+          await requirePositiveMarker(report.markerReproduced);
           await checkExtent();
         }
         if (addressPlan && report.markerReproduced) {
@@ -1086,10 +1103,15 @@ async function main() {
         report.retryable = false;
       }
       if (error.workerFailure) report.workerFailure = error.workerFailure;
+      if (error.workerFailure?.observed === 'not-terminated') {
+        if (released && report.active?.profile === 'positive') report.placementUncertain = true;
+        report.workerCaptureSkipped = 'Native worker has not terminated; result buffers may still be reserved by IPC';
+      }
+      report.failureSummary = waveHistory.failureSummary(snapshot(), error);
       process.exitCode = 1;
       // Save the host-side failure before attempting any diagnostic RPC.
       await save();
-      if (runControl.started && await s.ready()) {
+      if (!report.workerCaptureSkipped && runControl.started && await s.ready()) {
         if (s.threads.size && workers.length) {
           try {
             const capture = await require("./capture-workers.cjs").captureWorkers(s, workers);
@@ -1098,8 +1120,9 @@ async function main() {
           } catch (captureError) {report.workerCaptureError = captureError.stack;}
           await save();
         }
-        console.log(JSON.stringify({stage: ('bounded-failure'), file, error: error.message}));
       }
+      console.log(JSON.stringify({stage: 'bounded-failure', file, error: error.message,
+        failureSummary: report.failureSummary, workerCaptureSkipped: report.workerCaptureSkipped}));
     }
   }
   finally {
@@ -1140,10 +1163,12 @@ async function main() {
     await s.closeUpload();
     report.cleanedUp = !s.base && !s.handles.size && !s.threads.size && !created.length && !group;
     report.finished = new Date().toISOString();
+    if (report.error) report.failureSummary = waveHistory.failureSummary(snapshot());
     await runControl.close();
     await save();
     console.log(JSON.stringify({file, completed: report.completed, cleanedUp: report.cleanedUp,
-      qualifiedReadSize: report.qualifiedReadSize, error: report.error, cleanupError: report.cleanupError}));
+      qualifiedReadSize: report.qualifiedReadSize, error: report.error, cleanupError: report.cleanupError,
+      failureSummary: report.failureSummary}));
   }
 }
 
